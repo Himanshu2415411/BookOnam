@@ -5,8 +5,8 @@ import { MAX_FILE_SIZE } from "@/lib/constants";
 import { json } from "zod";
 
 export async function POST(request: Request): Promise<NextResponse> {
-    const body = (await request.json()) as HandleUploadBody;
     try{
+        const body = (await request.json()) as HandleUploadBody;
         const jsonResponse = await handleUpload({body, 
             request, 
             token: process.env.BLOB_READ_WRITE_TOKEN,
