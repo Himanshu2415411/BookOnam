@@ -1,47 +1,9 @@
-import { Document, Types, ClientSession } from 'mongoose';
+import { Document, Types } from 'mongoose';
 import { ReactNode } from 'react';
 import { Control, FieldPath, FieldValues } from 'react-hook-form';
 import { LucideIcon } from 'lucide-react';
 import z from 'zod';
 import { UploadSchema } from '@/lib/zod';
-
-// ============================================
-// PDFJS MODULE DECLARATIONS
-// ============================================
-
-declare module 'pdfjs-dist/legacy/build/pdf.min.mjs' {
-    export const getDocument: (source: ArrayBuffer | Uint8Array | { data: ArrayBuffer | Uint8Array }) => {
-        promise: Promise<PDFDocumentProxy>;
-    };
-    export const GlobalWorkerOptions: {
-        workerSrc: string;
-    };
-}
-
-export interface PDFTextItem {
-    str: string;
-    transform?: number[];
-    width?: number;
-    height?: number;
-    hasEOL?: boolean;
-}
-
-export interface PDFTextContent {
-    items: PDFTextItem[];
-    styles?: Record<string, any>;
-}
-
-export interface PDFPageProxy {
-    getTextContent(): Promise<PDFTextContent>;
-    getOperatorList(): Promise<any>;
-}
-
-export interface PDFDocumentProxy {
-    numPages: number;
-    isEncrypted: boolean;
-    getPage(pageNumber: number): Promise<PDFPageProxy>;
-    destroy(): Promise<void>;
-}
 
 // ============================================
 // DATABASE MODELS
@@ -54,11 +16,11 @@ export interface IBook extends Document {
     slug: string;
     author: string;
     persona?: string;
-    fileURL?: string;
-    fileBlobKey?: string;
-    coverURL?: string;
+    fileURL: string;
+    fileBlobKey: string;
+    coverURL: string;
     coverBlobKey?: string;
-    fileSize?: number;
+    fileSize: number;
     totalSegments: number;
     createdAt: Date;
     updatedAt: Date;
@@ -98,11 +60,11 @@ export interface CreateBook {
     title: string;
     author: string;
     persona?: string;
-    fileURL?: string;
-    fileBlobKey?: string;
+    fileURL: string;
+    fileBlobKey: string;
     coverURL?: string;
     coverBlobKey?: string;
-    fileSize?: number;
+    fileSize: number;
 }
 
 export interface TextSegment {
@@ -153,28 +115,4 @@ export interface FileUploadFieldProps<T extends FieldValues> {
     icon: LucideIcon;
     placeholder: string;
     hint: string;
-}
-export interface StartSessionResult {
-    success: boolean;
-    sessionId?: string;
-    maxDurationMinutes?: number;
-    error?: string;
-    isBillingError?: boolean;
-}
-
-export interface EndSessionResult {
-    success: boolean;
-    error?: string;
-}
-
-// ============================================
-// BILLING RESPONSES
-// ============================================
-
-export interface CreateBookResponse {
-    success: boolean;
-    data?: any;
-    alreadyExists?: boolean;
-    message?: string;
-    billingError?: boolean;
 }
