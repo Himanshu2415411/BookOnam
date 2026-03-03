@@ -13,14 +13,31 @@ function formatTime(seconds: number): string {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-const MAX_SESSION_DURATION = 15 * 60; // 15 minutes in seconds
+// Helper function to get status display name and styling
+function getStatusDisplay(status: string): { label: string; color: string } {
+    switch (status) {
+        case 'listening':
+            return { label: 'Listening...', color: 'text-green-600' };
+        case 'thinking':
+            return { label: 'Thinking...', color: 'text-blue-600' };
+        case 'speaking':
+            return { label: 'Speaking...', color: 'text-purple-600' };
+        case 'connecting':
+            return { label: 'Connecting...', color: 'text-yellow-600' };
+        case 'starting':
+            return { label: 'Starting...', color: 'text-yellow-600' };
+        default:
+            return { label: 'Ready', color: 'text-green-600' };
+    }
+}
 
 const VapiControls = ({book}:{book:IBook}) => {
-    const { status, isActive, messages, currentMessage, currentUserMessage, duration, limitError,
+    const { status, isActive, messages, currentMessage, currentUserMessage, duration, maxDuration, limitError,
         start, stop, clearError } = useVapi(book);
         
     const formattedDuration = formatTime(duration);
-    const formattedMaxDuration = formatTime(MAX_SESSION_DURATION);
+    const formattedMaxDuration = maxDuration ? formatTime(maxDuration) : '15:00';
+    const statusDisplay = getStatusDisplay(status);
   return (
 
     <div className="max-w-4xl mx-auto space-y-6">
@@ -73,10 +90,15 @@ const VapiControls = ({book}:{book:IBook}) => {
                   
                   {/* Status Badges */}
                   <div className="flex flex-wrap gap-2 mt-2">
-                    {/* Status Indicator */}
-                    <div className="vapi-status-indicator">
-                      <span className="vapi-status-dot vapi-status-dot-ready"></span>
-                      <span className="vapi-status-text">Ready</span>
+                    {/* Status Indicator - Now showing actual Vapi status */}
+                    <div className={`vapi-status-indicator ${statusDisplay.color}`}>
+                      <span className={`vapi-status-dot ${
+                        status === 'listening' ? 'vapi-status-dot-listening' :
+                        status === 'thinking' ? 'vapi-status-dot-thinking' :
+                        status === 'speaking' ? 'vapi-status-dot-speaking' :
+                        'vapi-status-dot-ready'
+                      }`}></span>
+                      <span className="vapi-status-text">{statusDisplay.label}</span>
                     </div>
                     
                     {/* Voice Label */}
@@ -85,8 +107,12 @@ const VapiControls = ({book}:{book:IBook}) => {
                       <span className="vapi-status-text">Voice: {book.persona || 'Default'}</span>
                     </div>
                     
-                    {/* Timer - Now Dynamic */}
-                    <div className="vapi-status-indicator">
+                    {/* Timer - Now showing progress with color warning */}
+                    <div className={`vapi-status-indicator ${
+                      maxDuration && duration >= maxDuration * 0.9 ? 'text-red-600' :
+                      maxDuration && duration >= maxDuration * 0.75 ? 'text-yellow-600' :
+                      'text-[#212a3b]'
+                    }`}>
                       <span className="vapi-status-text">{formattedDuration}/{formattedMaxDuration}</span>
                     </div>
                   </div>

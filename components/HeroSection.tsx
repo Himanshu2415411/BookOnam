@@ -3,7 +3,7 @@ import Link from 'next/link'
 
 const HeroSection = () => {
   return (
-    <div className="container pt-2  mb-10 md:mb-16">
+    <div className="container pt-2  mb-2 md:mb-3">
       {/* Hero Section - Warm Beige Card */}
       <div className="library-hero-card">
         <div className="library-hero-content pt-8">

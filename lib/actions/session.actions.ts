@@ -3,7 +3,8 @@
 import VoiceSession from "@/database/models/voiceSession.model";
 import { connectToDatabase } from "@/database/mongoose";
 import {StartSessionResult, EndSessionResult} from "@/types";
-import { getCurrentBillingPeriodStart } from "@/lib/subscription.constants";
+import { getCurrentBillingPeriodStart, PLAN_LIMITS, PlanType } from "@/lib/subscription.constants";
+import { canStartSession, getMaxSessionDuration } from "@/lib/billing.utils";
 
 
 
@@ -13,17 +14,37 @@ export const startVoiceSession = async (clerkId: string, bookId:string): Promise
         // Ensure user is authenticated
         await connectToDatabase();
 
+        // Count sessions started this billing month for the user
+        const billingPeriodStart = getCurrentBillingPeriodStart();
+        const monthlySessionCount = await VoiceSession.countDocuments({
+            clerkId,
+            billingPeriodStart,
+        });
+
+        // Check if user can start a session based on their plan
+        const { allowed, reason } = await canStartSession(monthlySessionCount);
+        if (!allowed) {
+            return {
+                success: false,
+                error: reason || 'You have reached your session limit for this month',
+                isBillingError: true,
+            };
+        }
+
+        // Get max duration for user's plan
+        const maxDurationSeconds = await getMaxSessionDuration();
+
         const session = await VoiceSession.create({
             clerkId,
             bookId, 
             startedAt: new Date(),
-            billingPeriodStart: getCurrentBillingPeriodStart(),
+            billingPeriodStart,
             durationSeconds: 0,
         });
         return {
             success: true,
             sessionId: session._id.toString(),
-            // maxDurationMinutes: limits.maxSessionMinutes
+            maxDurationMinutes: maxDurationSeconds / 60,
         }
     }catch(error) {
         console.error("Error starting voice session:", error);

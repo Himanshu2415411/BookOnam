@@ -166,3 +166,15 @@ export interface EndSessionResult {
     success: boolean;
     error?: string;
 }
+
+// ============================================
+// BILLING RESPONSES
+// ============================================
+
+export interface CreateBookResponse {
+    success: boolean;
+    data?: any;
+    alreadyExists?: boolean;
+    message?: string;
+    billingError?: boolean;
+}

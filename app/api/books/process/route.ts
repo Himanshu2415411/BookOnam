@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import mongoose, { ClientSession } from "mongoose";
 import { put } from "@vercel/blob";
+import sharp from "sharp";
 import { connectToDatabase } from "@/database/mongoose";
 import { generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
@@ -46,6 +47,72 @@ function splitIntoSegments(
     }
 
     return segments;
+}
+
+// Helper function to generate a cover image with book title
+async function generateCoverImage(title: string, author: string): Promise<Buffer | null> {
+    try {
+        console.log("📸 Generating auto cover image for:", title);
+        
+        // Create SVG with book title and author
+        const svgImage = `
+            <svg width="300" height="400" xmlns="http://www.w3.org/2000/svg">
+                <!-- Gradient background -->
+                <defs>
+                    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#3d485e;stop-opacity:1" />
+                        <stop offset="100%" style="stop-color:#212a3b;stop-opacity:1" />
+                    </linearGradient>
+                </defs>
+                
+                <!-- Background -->
+                <rect width="300" height="400" fill="url(#grad)"/>
+                
+                <!-- Decorative elements -->
+                <circle cx="150" cy="100" r="40" fill="#f97316" opacity="0.3"/>
+                <circle cx="50" cy="300" r="60" fill="#0ea5e9" opacity="0.2"/>
+                
+                <!-- Title -->
+                <text 
+                    x="150" 
+                    y="180" 
+                    font-size="28" 
+                    font-weight="bold" 
+                    text-anchor="middle" 
+                    fill="white"
+                    font-family="Arial, sans-serif"
+                    word-spacing="100%"
+                >
+                    <tspan x="150" dy="0">${title.substring(0, 20)}</tspan>
+                    ${title.length > 20 ? `<tspan x="150" dy="35">${title.substring(20, 40)}</tspan>` : ''}
+                </text>
+                
+                <!-- Author -->
+                <text 
+                    x="150" 
+                    y="320" 
+                    font-size="16" 
+                    text-anchor="middle" 
+                    fill="#e0e7ff"
+                    font-family="Arial, sans-serif"
+                    font-style="italic"
+                >
+                    by ${author.substring(0, 30)}
+                </text>
+            </svg>
+        `;
+        
+        // Convert SVG to PNG using sharp
+        const coverBuffer = await sharp(Buffer.from(svgImage))
+            .png()
+            .toBuffer();
+        
+        console.log("✅ Cover image generated:", coverBuffer.length, "bytes");
+        return coverBuffer;
+    } catch (error) {
+        console.error("❌ Error generating cover image:", error);
+        return null;
+    }
 }
 
 // Helper function to parse PDF on the server (extract text with page numbers)
@@ -215,29 +282,40 @@ export async function POST(request: Request) {
         let coverURL = "";
         let coverBlobKey = "";
         
-        // Upload cover image if provided
-        if (coverImage) {
-            try {
-                console.log("📸 Starting cover image upload:", {
+        // Process cover image: use provided or generate automatic
+        let coverImageBuffer: Buffer | null = null;
+        let coverImageName = "";
+        
+        try {
+            if (coverImage) {
+                // User provided cover image
+                console.log("📸 Using user-provided cover image:", {
                     name: coverImage.name,
                     size: coverImage.size,
                     type: coverImage.type
                 });
                 
-                // Convert File to Buffer/Uint8Array
-                const coverBuffer = await coverImage.arrayBuffer();
-                console.log("✓ Cover buffer created, size:", coverBuffer.byteLength, "bytes");
+                const coverArrayBuffer = await coverImage.arrayBuffer();
+                coverImageBuffer = Buffer.from(coverArrayBuffer);
+                coverImageName = `${slug}-${Date.now()}-cover`;
+            } else {
+                // Generate automatic cover image from title and author
+                console.log("🎨 Generating automatic cover image...");
+                coverImageBuffer = await generateCoverImage(title, author);
+                coverImageName = `${slug}-${Date.now()}-auto-cover`;
+            }
+            
+            // Upload cover image to Vercel Blob
+            if (coverImageBuffer && coverImageBuffer.length > 0) {
+                console.log("✓ Cover buffer ready, size:", coverImageBuffer.length, "bytes");
                 
-                // Check if token exists
                 if (!process.env.BLOB_READ_WRITE_TOKEN) {
                     throw new Error("BLOB_READ_WRITE_TOKEN not configured");
                 }
-                console.log("✓ Blob token found");
                 
-                // Upload to Vercel Blob
                 const coverBlob = await put(
-                    `covers/${slug}-${Date.now()}.${coverImage.type.split('/')[1] || 'png'}`,
-                    new Blob([coverBuffer], { type: coverImage.type }),
+                    `covers/${coverImageName}.png`,
+                    coverImageBuffer,
                     {
                         access: "public",
                         token: process.env.BLOB_READ_WRITE_TOKEN,
@@ -247,7 +325,6 @@ export async function POST(request: Request) {
                 console.log("📦 Vercel Blob response:", {
                     url: coverBlob?.url,
                     pathname: coverBlob?.pathname,
-                    contentType: coverBlob?.contentType,
                 });
                 
                 if (coverBlob?.url) {
@@ -255,21 +332,18 @@ export async function POST(request: Request) {
                     coverBlobKey = coverBlob.pathname;
                     console.log("✅ Cover image uploaded successfully!");
                     console.log("   URL:", coverURL);
-                    console.log("   Pathname:", coverBlobKey);
                 } else {
-                    console.error("⚠️ Blob response missing URL:", coverBlob);
+                    console.error("⚠️ Blob response missing URL");
                 }
-            } catch (coverError: any) {
-                console.error("❌ Error uploading cover image:", {
-                    message: coverError?.message,
-                    code: coverError?.code,
-                    stack: coverError?.stack,
-                    error: coverError
-                });
-                // Continue without cover image, don't fail the book creation
+            } else {
+                console.warn("⚠️ No cover image available for upload");
             }
-        } else {
-            console.log("ℹ️ No cover image provided");
+        } catch (coverError: any) {
+            console.error("❌ Error processing/uploading cover image:", {
+                message: coverError?.message,
+                code: coverError?.code,
+            });
+            // Continue without cover image, don't fail the book creation
         }
         
         await (dbSession as ClientSession).withTransaction(async () => {

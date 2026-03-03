@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Vapi from '@vapi-ai/web';
 import { useAuth } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 
 import { ASSISTANT_ID, DEFAULT_VOICE, VOICE_SETTINGS } from '@/lib/constants';
 import { getVoice } from '@/lib/utils';
 import { IBook, Messages } from '@/types';
 import { startVoiceSession, endVoiceSession } from '@/lib/actions/session.actions';
+import { getMaxSessionDuration } from '@/lib/billing.utils';
 
 export function useLatestRef<T>(value: T) {
     const ref = useRef(value);
@@ -40,12 +42,14 @@ export type CallStatus = 'idle' | 'connecting' | 'starting' | 'listening' | 'thi
 
 export function useVapi(book: IBook) {
     const { userId } = useAuth();
+    const router = useRouter();
 
     const [status, setStatus] = useState<CallStatus>('idle');
     const [messages, setMessages] = useState<Messages[]>([]);
     const [currentMessage, setCurrentMessage] = useState('');
     const [currentUserMessage, setCurrentUserMessage] = useState('');
     const [duration, setDuration] = useState(0);
+    const [maxDuration, setMaxDuration] = useState<number | null>(null);
     const [limitError, setLimitError] = useState<string | null>(null);
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -55,7 +59,25 @@ export function useVapi(book: IBook) {
 
     // Keep refs in sync with latest values for use in callbacks
     const durationRef = useLatestRef(duration);
+    const maxDurationRef = useLatestRef(maxDuration);
     const voice = book.persona || DEFAULT_VOICE;
+
+    // Fetch user's max session duration based on their plan
+    useEffect(() => {
+        const fetchMaxDuration = async () => {
+            try {
+                const max = await getMaxSessionDuration();
+                setMaxDuration(max);
+            } catch (error) {
+                console.error('Failed to fetch max session duration:', error);
+                setMaxDuration(5 * 60); // Default to 5 minutes (free tier) on error
+            }
+        };
+
+        if (userId) {
+            fetchMaxDuration();
+        }
+    }, [userId]);
 
     const isActive =
         status === 'starting' ||
@@ -79,6 +101,18 @@ export function useVapi(book: IBook) {
                     if (startTimeRef.current) {
                         const newDuration = Math.floor((Date.now() - startTimeRef.current) / TIMER_INTERVAL_MS);
                         setDuration(newDuration);
+
+                        // Check if session duration exceeds the limit
+                        if (maxDurationRef.current && newDuration >= maxDurationRef.current) {
+                            console.warn('Session duration limit exceeded, ending session');
+                            isStoppingRef.current = true;
+                            getVapi().stop();
+                            
+                            // Redirect to home after a brief delay
+                            setTimeout(() => {
+                                router.push('/');
+                            }, 1000);
+                        }
                     }
                 }, TIMER_INTERVAL_MS);
             },
@@ -279,6 +313,7 @@ export function useVapi(book: IBook) {
         currentMessage,
         currentUserMessage,
         duration,
+        maxDuration,
         start,
         stop,
         limitError,

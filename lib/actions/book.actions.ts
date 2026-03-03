@@ -5,6 +5,7 @@ import { CreateBook, TextSegment } from "@/types";
 import {generateSlug, serializeData} from '@/lib/utils';
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/bookSegment.model";
+import { canCreateBook } from "@/lib/billing.utils";
 
 
 export const getAllBooks = async () => {
@@ -39,6 +40,44 @@ export const getUserBooks = async (clerkId: string) => {
         return {
             success: false,
             message: 'Failed to fetch user books'
+        }
+    }
+}
+
+export const searchUserBooks = async (clerkId: string, query: string) => {
+    try{
+        await connectToDatabase();
+        
+        // If query is empty, return all books
+        if (!query || query.trim() === '') {
+            const books = await Book.find({ clerkId }).sort({createdAt: -1}).lean();
+            return {
+                success: true,
+                data: serializeData(books),
+            }
+        }
+
+        // Create case-insensitive regex for search
+        const searchRegex = new RegExp(query, 'i');
+        
+        // Search in title and author fields
+        const books = await Book.find({
+            clerkId,
+            $or: [
+                { title: searchRegex },
+                { author: searchRegex }
+            ]
+        }).sort({createdAt: -1}).lean();
+
+        return {
+            success: true,
+            data: serializeData(books),
+        }
+    }catch(error) {    
+        console.error('Error searching user books:', error);
+        return {
+            success: false,
+            message: 'Failed to search books'
         }
     }
 }
@@ -137,7 +176,19 @@ export const createBook = async (data: CreateBook) => {
                 alreadyExists: true,
             }
         }
-        //Todo: check subscription limits before creating book
+
+        // Check subscription limits before creating book
+        const userBookCount = await Book.countDocuments({ clerkId: data.clerkId }).lean();
+        const { allowed, reason } = await canCreateBook(userBookCount);
+
+        if (!allowed) {
+            return {
+                success: false,
+                message: reason || 'You have reached the maximum number of books for your plan',
+                billingError: true,
+            }
+        }
+
         const book = await Book.create({...data, slug, totalSegments: 0});
 
         return {
