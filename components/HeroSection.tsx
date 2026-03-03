@@ -3,10 +3,10 @@ import Link from 'next/link'
 
 const HeroSection = () => {
   return (
-    <div className="container pt-28 mb-10 md:mb-16">
+    <div className="container pt-2  mb-2 md:mb-3">
       {/* Hero Section - Warm Beige Card */}
       <div className="library-hero-card">
-        <div className="library-hero-content">
+        <div className="library-hero-content pt-8">
           
           {/* Left Section - Text Content */}
           <div className="library-hero-text">
@@ -26,14 +26,14 @@ const HeroSection = () => {
             <img 
               src="/assets/hero-illustration.png" 
               alt="Vintage books with globe" 
-              className="w-full max-w-[350px] h-auto"
+              className="w-full max-w-87.5 h-auto"
             />
           </div>
           <div className="library-hero-illustration">
             <img 
               src="/assets/hero-illustration.png" 
               alt="Vintage books with globe" 
-              className="w-full max-w-[280px] h-auto"
+              className="w-full max-w-70 h-auto"
             />
           </div>
 
