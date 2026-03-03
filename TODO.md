@@ -1,22 +1,35 @@
-# Book Upload & Segment Fixes - TODO
+# Task: Create Vapi Search Book API Route
 
-## Current Issues:
-- Book uploads are inconsistent (sometimes work, sometimes not)
-- Segments are not being created when book uploads successfully
+## Plan
 
-## Fixes Implemented:
+### 1. Information Gathered
+- **BookSegment Model**: Contains `bookId`, `content`, `segmentIndex`, `pageNumber`, `wordCount` fields. Text search index exists on content field.
+- **Existing Actions**: `saveBookSegments` in `lib/actions/book.actions.ts` for saving segments.
+- **Vapi Integration**: Uses Vapi AI with assistant ID, passes `bookId` as a variable to the assistant.
+- **Tool Call Pattern**: Vapi makes tool calls to the backend with tool name and parameters.
 
-### 1. Make fileURL and fileBlobKey optional in Book model
-- [x] Updated database/models/book.model.ts
+### 2. Plan
 
-### 2. Add pageNumber to segment creation in PDF parser
-- [x] Updated app/api/books/process/route.ts
+#### Step 1: Add Search Book Segments Function
+- **File**: `lib/actions/book.actions.ts`
+- Add new function `searchBookSegments(bookId, query, numSegments)` that:
+  - Connects to database
+  - Uses MongoDB text search or regex to find matching segments
+  - Returns top N segments with their content
 
-### 3. Add transaction handling with rollback
-- [x] Updated app/api/books/process/route.ts
+#### Step 2: Create Vapi Search Book API Route  
+- **File**: `app/api/vapi/search-book/route.ts`
+- Create POST route that:
+  - Handles Vapi tool call with tool name "search_book"
+  - Extracts `bookId` and `query` from parameters
+  - Calls `searchBookSegments` with bookId, query, and 3 segments
+  - Combines matching segments with their contents (separated by double newlines)
+  - Returns result string, or "no information found about this topic" if no matches
 
-### 4. Add proper validation and error handling for PDF parsing
-- [x] Updated app/api/books/process/route.ts
+### 3. Dependent Files
+- `lib/actions/book.actions.ts` - Add search function
+- Create new: `app/api/vapi/search-book/route.ts` - API route
 
-### 5. Updated types to match model changes
-- [x] Updated types.d.ts
+### 4. Followup Steps
+- Test the API route manually with mock Vapi tool call payload
+- Ensure database connection works properly

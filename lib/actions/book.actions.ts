@@ -26,6 +26,31 @@ export const getAllBooks = async () => {
     }
 }
 
+export const getBookBySlug = async (slug: string) => {
+    try{
+        await connectToDatabase();
+        const book = await Book.findOne({ slug }).lean();
+
+        if(!book) {
+            return {
+                success: false,
+                message: 'Book not found'
+            }
+        }
+
+        return {
+            success: true,
+            data: serializeData(book),
+        }
+    }catch(error) {    
+        console.error('Error fetching book:', error);
+        return {
+            success: false,
+            message: 'Failed to fetch book'
+        }
+    }
+}
+
 export const checkBookExists = async (slug: string) => {
     try{
         await connectToDatabase();
@@ -116,5 +141,61 @@ export const saveBookSegments = async (bookId: string, clerkId: string, segments
             success: false,
             message: 'Failed to save book segments'
         }
+    }
+}
+
+export interface SearchSegmentResult {
+    segmentIndex: number;
+    pageNumber?: number;
+    content: string;
+    score?: number;
+}
+
+export const searchBookSegments = async (
+    bookId: string, 
+    query: string, 
+    numSegments: number = 3
+): Promise<{ success: boolean; data?: SearchSegmentResult[]; message?: string }> => {
+    try {
+        await connectToDatabase();
+
+        // Use MongoDB text search to find matching segments
+        // The text index was created on the content field in the model
+        const results = await BookSegment.find({
+            bookId,
+            $text: { $search: query }
+        }, {
+            score: { $meta: 'textScore' }
+        })
+        .sort({ score: { $meta: 'textScore' } })
+        .limit(numSegments)
+        .lean();
+
+        if (!results || results.length === 0) {
+            return {
+                success: true,
+                data: [],
+                message: 'No matching segments found'
+            };
+        }
+
+        const segments: SearchSegmentResult[] = results.map((segment) => ({
+            segmentIndex: segment.segmentIndex,
+            pageNumber: segment.pageNumber,
+            content: segment.content,
+            score: segment.score
+        }));
+
+        return {
+            success: true,
+            data: segments
+        };
+
+    } catch (error) {
+        console.error('Error searching book segments:', error);
+        return {
+            success: false,
+            message: 'Failed to search book segments'
+        };
     }
 }
