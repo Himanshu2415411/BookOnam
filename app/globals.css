@@ -549,7 +549,7 @@
     @apply flex-1 py-2 px-4 outline-none text-(--text-primary) placeholder:text-(--text-muted);
   }
   .library-books-grid {
-    @apply grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 md:gap-x-10 gap-y-7 md:gap-y-9;
+    @apply mt-6 md:mt-8 lg:mt-10 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-3 md:gap-x-10 gap-y-7 md:gap-y-9;
   }
   .library-empty-card {
     @apply bg-(--bg-secondary) rounded-[14px] p-12 max-w-md mx-auto;

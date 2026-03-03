@@ -25,6 +25,24 @@ export const getAllBooks = async () => {
     }
 }
 
+export const getUserBooks = async (clerkId: string) => {
+    try{
+        await connectToDatabase();
+        const books = await Book.find({ clerkId }).sort({createdAt: -1}).lean();
+
+        return {
+            success: true,
+            data: serializeData(books),
+        }
+    }catch(error) {    
+        console.error('Error fetching user books:', error);
+        return {
+            success: false,
+            message: 'Failed to fetch user books'
+        }
+    }
+}
+
 // DEPRECATED: Do not use for fetching user books - does not verify ownership!
 // Use getBookBySlugForUser(slug, clerkId) instead to ensure ownership verification
 export const getBookBySlug = async (slug: string) => {

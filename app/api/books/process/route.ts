@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import mongoose, { ClientSession } from "mongoose";
+import { put } from "@vercel/blob";
 import { connectToDatabase } from "@/database/mongoose";
 import { generateSlug, serializeData } from "@/lib/utils";
 import Book from "@/database/models/book.model";
@@ -211,6 +212,65 @@ export async function POST(request: Request) {
         dbSession = await mongoConn.startSession();
         
         let book: any = null;
+        let coverURL = "";
+        let coverBlobKey = "";
+        
+        // Upload cover image if provided
+        if (coverImage) {
+            try {
+                console.log("📸 Starting cover image upload:", {
+                    name: coverImage.name,
+                    size: coverImage.size,
+                    type: coverImage.type
+                });
+                
+                // Convert File to Buffer/Uint8Array
+                const coverBuffer = await coverImage.arrayBuffer();
+                console.log("✓ Cover buffer created, size:", coverBuffer.byteLength, "bytes");
+                
+                // Check if token exists
+                if (!process.env.BLOB_READ_WRITE_TOKEN) {
+                    throw new Error("BLOB_READ_WRITE_TOKEN not configured");
+                }
+                console.log("✓ Blob token found");
+                
+                // Upload to Vercel Blob
+                const coverBlob = await put(
+                    `covers/${slug}-${Date.now()}.${coverImage.type.split('/')[1] || 'png'}`,
+                    new Blob([coverBuffer], { type: coverImage.type }),
+                    {
+                        access: "public",
+                        token: process.env.BLOB_READ_WRITE_TOKEN,
+                    }
+                );
+                
+                console.log("📦 Vercel Blob response:", {
+                    url: coverBlob?.url,
+                    pathname: coverBlob?.pathname,
+                    contentType: coverBlob?.contentType,
+                });
+                
+                if (coverBlob?.url) {
+                    coverURL = coverBlob.url;
+                    coverBlobKey = coverBlob.pathname;
+                    console.log("✅ Cover image uploaded successfully!");
+                    console.log("   URL:", coverURL);
+                    console.log("   Pathname:", coverBlobKey);
+                } else {
+                    console.error("⚠️ Blob response missing URL:", coverBlob);
+                }
+            } catch (coverError: any) {
+                console.error("❌ Error uploading cover image:", {
+                    message: coverError?.message,
+                    code: coverError?.code,
+                    stack: coverError?.stack,
+                    error: coverError
+                });
+                // Continue without cover image, don't fail the book creation
+            }
+        } else {
+            console.log("ℹ️ No cover image provided");
+        }
         
         await (dbSession as ClientSession).withTransaction(async () => {
             // Create book first
@@ -222,7 +282,8 @@ export async function POST(request: Request) {
                 persona: voice || undefined,
                 fileURL: "", // Will be updated after blob upload
                 fileBlobKey: "",
-                coverURL: "", // Cover will be generated on client or uploaded separately
+                coverURL: coverURL, // Cover uploaded
+                coverBlobKey: coverBlobKey, // Store blob key for deletion if needed
                 fileSize: pdfFile.size,
                 totalSegments: 0,
             }], { session: dbSession });

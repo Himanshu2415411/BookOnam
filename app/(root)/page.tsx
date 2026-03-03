@@ -1,11 +1,19 @@
 import React from 'react'
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from 'next/navigation';
 import HeroSection from '@/components/HeroSection'
 import BookCard from '@/components/BookCard'
-import { getAllBooks } from '@/lib/actions/book.actions'
+import { getUserBooks } from '@/lib/actions/book.actions'
 
 const page = async () => {
+  // Require authentication
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect('/sign-in');
+  }
   
-  const bookResults = await getAllBooks();
+  const bookResults = await getUserBooks(userId);
   const books = bookResults.success ? bookResults.data ?? [] : [];
 
   return (
