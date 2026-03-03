@@ -159,8 +159,9 @@ export async function POST(request: Request) {
         // Generate slug
         const slug = generateSlug(title);
 
-        // Check if book already exists
-        const existingBook = await Book.findOne({ slug }).lean();
+        // Check if book already exists FOR THIS USER
+        // This prevents users from uploading the same book twice, but allows different users to have books with the same slug
+        const existingBook = await Book.findOne({ slug, clerkId: userId }).lean();
         if (existingBook) {
             return NextResponse.json({
                 success: true,

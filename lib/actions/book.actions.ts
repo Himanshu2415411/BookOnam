@@ -5,7 +5,6 @@ import { CreateBook, TextSegment } from "@/types";
 import {generateSlug, serializeData} from '@/lib/utils';
 import Book from "@/database/models/book.model";
 import BookSegment from "@/database/models/bookSegment.model";
-import { title } from "process";
 
 
 export const getAllBooks = async () => {
@@ -26,6 +25,8 @@ export const getAllBooks = async () => {
     }
 }
 
+// DEPRECATED: Do not use for fetching user books - does not verify ownership!
+// Use getBookBySlugForUser(slug, clerkId) instead to ensure ownership verification
 export const getBookBySlug = async (slug: string) => {
     try{
         await connectToDatabase();
@@ -51,10 +52,34 @@ export const getBookBySlug = async (slug: string) => {
     }
 }
 
+export const getBookBySlugForUser = async (slug: string, clerkId: string) => {
+    try{
+        await connectToDatabase();
+        const book = await Book.findOne({ slug, clerkId }).lean();
+
+        if(!book) {
+            return {
+                success: false,
+                message: 'Book not found'
+            }
+        }
+
+        return {
+            success: true,
+            data: serializeData(book),
+        }
+    }catch(error) {    
+        console.error('Error fetching book:', error);
+        return {
+            success: false,
+            message: 'Failed to fetch book'
+        }
+    }
+}
+
 export const checkBookExists = async (slug: string) => {
     try{
         await connectToDatabase();
-        const slug = generateSlug(title);
         const existingBook = await Book.findOne({ slug }).lean();
 
         if(existingBook) {
@@ -63,6 +88,11 @@ export const checkBookExists = async (slug: string) => {
                 data: serializeData(existingBook)
             }
         }
+        
+        return {
+            exists: false,
+            message: 'Book does not exist'
+        };
     }
     catch(error) {
         console.error('Error checking book exists:', error);

@@ -27,7 +27,7 @@ async function processBookSearch(bookId: unknown, query: unknown) {
     }
 
     const combinedText = searchResult.data
-        .map((segment) => (segment as { content: string }).content)
+        .map((segment) => segment.content)
         .join('\n\n');
 
     return { result: combinedText };
@@ -61,7 +61,7 @@ export async function POST(request: Request) {
             const { name, parameters } = functionCall;
             const parsed = parseArgs(parameters);
 
-            if (name === 'searchBook') {
+            if (name === 'search_book') {
                 const result = await processBookSearch(parsed.bookId, parsed.query);
                 return NextResponse.json(result);
             }
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
             const name = func?.name;
             const args = parseArgs(func?.arguments);
 
-            if (name === 'searchBook') {
+            if (name === 'search_book') {
                 const searchResult = await processBookSearch(args.bookId, args.query);
                 results.push({ toolCallId: id, ...searchResult });
             } else {

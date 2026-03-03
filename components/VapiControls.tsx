@@ -1,19 +1,43 @@
 'use client'
 
 import React from 'react'
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff, X } from 'lucide-react';
 import { useVapi } from '@/hooks/useVapi';
 import { IBook } from '@/types';
-import Image from 'next/image';
 import Transcript from './Transcript';
+
+// Helper function to format time in M:SS format
+function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+const MAX_SESSION_DURATION = 15 * 60; // 15 minutes in seconds
 
 const VapiControls = ({book}:{book:IBook}) => {
     const { status, isActive, messages, currentMessage, currentUserMessage, duration, limitError,
         start, stop, clearError } = useVapi(book);
+        
+    const formattedDuration = formatTime(duration);
+    const formattedMaxDuration = formatTime(MAX_SESSION_DURATION);
   return (
 
-    <>
     <div className="max-w-4xl mx-auto space-y-6">
+            {/* Error Display */}
+            {limitError && (
+                <div className="vapi-error-banner">
+                    <span className="vapi-error-text">{limitError}</span>
+                    <button 
+                        onClick={clearError} 
+                        className="vapi-error-dismiss" 
+                        aria-label="Dismiss error"
+                    >
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+            
             {/* Header Card */}
             <div className="vapi-header-card">
               <div className="flex items-start gap-6">
@@ -23,7 +47,7 @@ const VapiControls = ({book}:{book:IBook}) => {
                     src={book.coverURL || '/assets/book-cover.svg'}
                     alt={book.title}
                     className="vapi-cover-image"
-                  />
+                  ></img>
                   {/* Mic Button */}
                   <div className="vapi-mic-wrapper">
                     {/* White pulsating ring - shown when AI is speaking or thinking */}
@@ -61,9 +85,9 @@ const VapiControls = ({book}:{book:IBook}) => {
                       <span className="vapi-status-text">Voice: {book.persona || 'Default'}</span>
                     </div>
                     
-                    {/* Timer */}
+                    {/* Timer - Now Dynamic */}
                     <div className="vapi-status-indicator">
-                      <span className="vapi-status-text">0:00/15:00</span>
+                      <span className="vapi-status-text">{formattedDuration}/{formattedMaxDuration}</span>
                     </div>
                   </div>
                 </div>
@@ -81,7 +105,6 @@ const VapiControls = ({book}:{book:IBook}) => {
             </div>
 
         </div>
-    </>
 
   )
 }

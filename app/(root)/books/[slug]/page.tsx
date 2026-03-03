@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { auth } from "@clerk/nextjs/server";
 import { ArrowLeft, Mic, MicOff } from 'lucide-react';
 import Link from 'next/link';
-import { getBookBySlug } from '@/lib/actions/book.actions';
+import { getBookBySlugForUser } from '@/lib/actions/book.actions';
 import Book from './../../../../database/models/book.model';
 import VapiControls from '@/components/VapiControls';
 import { IBook } from '@/types';
@@ -18,8 +18,8 @@ export default async function BookDetailsPage({ params }: { params: Promise<{ sl
   // In Next.js 15+, params is a Promise
   const { slug } = await params;
 
-  // Fetch book from database
-  const result = await getBookBySlug(slug);
+  // Fetch book from database - enforce ownership by passing clerkId
+  const result = await getBookBySlugForUser(slug, userId);
 
   if (!result.success || !result.data) {
     redirect('/');
