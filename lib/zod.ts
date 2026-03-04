@@ -28,7 +28,7 @@ export const UploadSchema = z.object({
   coverImage: coverImageSchema,
   title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
   author: z.string().min(1, 'Author is required').max(100, 'Author must be less than 100 characters'),
-  voice: VoiceEnum,
+  voice: VoiceEnum.optional(),
 });
 
 export type UploadFormValues = z.infer<typeof UploadSchema>;

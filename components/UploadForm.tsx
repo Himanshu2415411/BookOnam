@@ -11,7 +11,8 @@ import { useAuth } from '@clerk/nextjs'
 import { Upload, Image, X, Loader2 } from 'lucide-react'
 import { 
   voiceOptions,
-  voiceCategories
+  voiceCategories,
+  DEFAULT_VOICE
 } from '@/lib/constants'
 import { toast } from 'sonner'
 
@@ -36,7 +37,7 @@ export default function UploadForm({ onSubmit }: UploadFormProps) {
       coverImage: undefined as unknown as File,
       title: '',
       author: '',
-      voice: undefined as unknown as VoiceType
+      voice: DEFAULT_VOICE
     }
   })
 
