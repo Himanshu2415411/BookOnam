@@ -8,8 +8,7 @@ import { useRouter } from 'next/navigation';
 import { ASSISTANT_ID, DEFAULT_VOICE, VOICE_SETTINGS } from '@/lib/constants';
 import { getVoice } from '@/lib/utils';
 import { IBook, Messages } from '@/types';
-import { startVoiceSession, endVoiceSession } from '@/lib/actions/session.actions';
-import { getMaxSessionDuration } from '@/lib/billing.utils';
+import { startVoiceSession, endVoiceSession, getMaxSessionDurationAction } from '@/lib/actions/session.actions';
 
 export function useLatestRef<T>(value: T) {
     const ref = useRef(value);
@@ -66,7 +65,7 @@ export function useVapi(book: IBook) {
     useEffect(() => {
         const fetchMaxDuration = async () => {
             try {
-                const max = await getMaxSessionDuration();
+                const max = await getMaxSessionDurationAction();
                 setMaxDuration(max);
             } catch (error) {
                 console.error('Failed to fetch max session duration:', error);

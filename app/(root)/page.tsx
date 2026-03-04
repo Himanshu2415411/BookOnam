@@ -6,7 +6,7 @@ import LibrarySearchBar from '@/components/LibrarySearchBar'
 import BookCard from '@/components/BookCard'
 import { getUserBooks, searchUserBooks } from '@/lib/actions/book.actions'
 
-const page = async ({ searchParams }: { searchParams: { q?: string } }) => {
+const page = async ({ searchParams }: { searchParams: Promise<{ q?: string }> }) => {
   // Require authentication
   const { userId } = await auth();
 
@@ -15,7 +15,8 @@ const page = async ({ searchParams }: { searchParams: { q?: string } }) => {
   }
   
   // Get search query from URL params
-  const searchQuery = searchParams.q || '';
+  const resolvedParams = await searchParams;
+  const searchQuery = resolvedParams.q || '';
   
   // Fetch books based on search query
   const bookResults = searchQuery 

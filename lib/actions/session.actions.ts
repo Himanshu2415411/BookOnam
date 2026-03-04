@@ -84,3 +84,18 @@ export const endVoiceSession = async (sessionId: string, durationSeconds: number
         };
     }
 }
+
+/**
+ * Server action to get max session duration based on user's plan
+ * This is called from the client and must be a server action to access Clerk auth
+ */
+export const getMaxSessionDurationAction = async (): Promise<number> => {
+    try {
+        const maxDurationSeconds = await getMaxSessionDuration();
+        return maxDurationSeconds;
+    } catch (error) {
+        console.error("Error getting max session duration:", error);
+        // Default to free tier (5 minutes)
+        return PLAN_LIMITS[PlanType.FREE].maxSessionDurationMinutes * 60;
+    }
+}

@@ -1,7 +1,14 @@
 import React from 'react'
+import { auth } from '@clerk/nextjs/server'
+import { redirect } from 'next/navigation'
 import UploadForm from '@/components/UploadForm'
 
-const page = () => {
+const page = async () => {
+  const { userId } = await auth()
+
+  if (!userId) {
+    redirect('/sign-in')
+  }
   return (
     <main className='wrapper container'>
       <section className='flex flex-col gap-5'>

@@ -1,3 +1,5 @@
+'use client'
+
 import React from 'react'
 import { PricingTable } from '@clerk/nextjs'
 import Link from 'next/link'
