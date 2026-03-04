@@ -38,8 +38,16 @@ const Navbar = () => {
             })}
             <div className='flex gap-7.5 items-center'>
               <SignedOut>
-                <SignInButton />
-                <SignUpButton />
+                <SignInButton>
+                  <button className="text-black font-medium hover:opacity-70 transition-opacity">
+                    Sign In
+                  </button>
+                </SignInButton>
+                <SignUpButton>
+                  <button className="text-black font-medium hover:opacity-70 transition-opacity">
+                    Sign Up
+                  </button>
+                </SignUpButton>
               </SignedOut>
               <SignedIn>
                 <div className='nav-user-link'>

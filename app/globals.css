@@ -761,6 +761,45 @@
   }
 
 /* Clerk Auth Button Overrides */
+/* Sign in and Sign up buttons in navbar */
+.clerk-sign-in-button,
+.clerk-sign-up-button,
+.cl-signInButton,
+.cl-signUpButton,
+.sign-in-button,
+.sign-up-button,
+[data-clerk-selector='sign-in'],
+[data-clerk-selector='sign-up'] {
+  color: black !important;
+  font-weight: 500 !important;
+}
+
+/* Target the button elements within Clerk's SignInButton/SignUpButton */
+.clerk-sign-in-button button,
+.clerk-sign-up-button button,
+.cl-signInButton button,
+.cl-signUpButton button {
+  color: black !important;
+  background: transparent !important;
+  font-weight: 500 !important;
+}
+
+/* Hover states */
+.clerk-sign-in-button:hover,
+.clerk-sign-up-button:hover,
+.cl-signInButton:hover,
+.cl-signUpButton:hover {
+  opacity: 0.7 !important;
+}
+
+/* Also target the link/anchor elements that Clerk might render */
+.clerk-sign-in-button a,
+.clerk-sign-up-button a,
+.cl-signInButton a,
+.cl-signUpButton a {
+  color: black !important;
+}
+
 .cl-formButtonPrimary {
   border: none !important;
   box-shadow: var(--shadow-soft) !important;
